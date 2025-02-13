@@ -1,0 +1,35 @@
+{
+  "symbols": [
+    "BTCUSDT",
+    "ETHUSDT"
+  ],
+  "refresh_interval": "1m",
+  "database": {
+    "conn_str": "postgresql://postgres:pass@localhost:5432/quantaflux?sslmode=disable"
+  },
+  "ai_config": {
+    "min_confidence": 0.7,
+    "predict_time_frame": "1h",
+    "scam_threshold": 0.8,
+    "api_key": "<deepseek api_key>",
+    "model_type": ""
+  },
+  "exchange_config": {
+    "api_key": "<bn api_key>",
+    "secret_key": "<bn secret_key>",
+    "debug": true
+  },
+  "risk_parameters": {
+    "max_position_size": 1000,
+    "max_loss_per_trade": 100,
+    "max_daily_loss": 1000,
+    "max_leverage": 2,
+    "min_liquidity": 10000
+  },
+  "trading_config": {
+    "max_order_amount": 100,
+    "min_order_amount": 10,
+    "price_tolerance": 0.02,
+    "order_type": "limit"
+  }
+}
