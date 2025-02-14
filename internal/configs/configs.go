@@ -22,6 +22,9 @@ type Config struct {
 
 	// 交易所配置
 	ExchangeConfig ExchangeConfig `json:"exchange_config" yaml:"exchange_config"`
+
+	// 代理设置
+	Proxy string `json:"proxy" yaml:"proxy"`
 }
 
 type AIConfig struct {

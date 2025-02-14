@@ -31,5 +31,6 @@
     "min_order_amount": 10,
     "price_tolerance": 0.02,
     "order_type": "limit"
-  }
+  },
+  "proxy": "http://127.0.0.1:7890"
 }

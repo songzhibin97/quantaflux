@@ -89,17 +89,17 @@ func (s *QuantSystem) Run(ctx context.Context) error {
 			return ctx.Err()
 
 		case marketData := <-marketDataCh:
-			log.Debug("Received market data: %+v\n\n", marketData)
+			log.Debug("Received market data", "market", marketData)
 
 			if err := s.handleMarketData(ctx, marketData); err != nil {
-				log.Error("Error handling market data: %v\n", err)
+				log.Error("Error handling market data", "err", err)
 			}
 
 		case alert := <-riskAlertCh:
 			log.Debug("Received risk alert: %+v\n", alert)
 
 			if err := s.handleRiskAlert(ctx, alert); err != nil {
-				log.Error("Error handling risk alert: %v\n", err)
+				log.Error("Error handling risk alert", "err", err)
 			}
 		}
 	}
@@ -123,25 +123,27 @@ func (s *QuantSystem) handleMarketData(ctx context.Context, data models.MarketDa
 		return err
 	}
 
-	// 3. 构建项目指标用于AI分析
-	projectMetrics := &models.ProjectMetrics{
-		TokenInfo: *tokenInfo,
-		// 计算社交分数（可以根据需要调整计算方法）
-		SocialScore: calculateSocialScore(socialMetrics),
-		// 其他指标可以根据需要添加
-		UpdatedAt: time.Now(),
-	}
+	if len(socialMetrics) != 0 {
+		// 3. 构建项目指标用于AI分析
+		projectMetrics := &models.ProjectMetrics{
+			TokenInfo: *tokenInfo,
+			// 计算社交分数（可以根据需要调整计算方法）
+			SocialScore: calculateSocialScore(socialMetrics),
+			// 其他指标可以根据需要添加
+			UpdatedAt: time.Now(),
+		}
 
-	// 4. 进行诈骗检测
-	scamAnalysis, err := s.aiAnalyzer.DetectScam(ctx, projectMetrics)
-	if err != nil {
-		return err
-	}
+		// 4. 进行诈骗检测
+		scamAnalysis, err := s.aiAnalyzer.DetectScam(ctx, projectMetrics)
+		if err != nil {
+			return err
+		}
 
-	// 如果诈骗可能性高于阈值，停止交易
-	if scamAnalysis.ScamProbability > s.config.AIConfig.ScamThreshold {
-		log.Warn("Warning: High scam probability detected for %s: %.2f", data.Symbol, scamAnalysis.ScamProbability)
-		return nil
+		// 如果诈骗可能性高于阈值，停止交易
+		if scamAnalysis.ScamProbability > s.config.AIConfig.ScamThreshold {
+			log.Warn("Warning: High scam probability detected for %s: %.2f", data.Symbol, scamAnalysis.ScamProbability)
+			return nil
+		}
 	}
 
 	// 5. 分析市场情绪
@@ -182,12 +184,9 @@ func (s *QuantSystem) handleMarketData(ctx context.Context, data models.MarketDa
 		return err
 	}
 
-	if riskAssessment.IsAcceptable {
-		log.Debug("Risk assessment for %s: acceptable", data.Symbol)
-	}
-
 	// 如果风险可接受，执行交易
 	if riskAssessment.IsAcceptable {
+		log.Debug("Risk assessment for %s: acceptable", data.Symbol)
 		return s.tradeExecutor.PlaceOrder(ctx, order)
 	}
 
@@ -237,7 +236,7 @@ func (s *QuantSystem) handleRiskAlert(ctx context.Context, alert risk.RiskAlert)
 		return s.reducePosition(ctx, alert.Symbol)
 	default:
 		// 记录警告信息
-		log.Error("Risk alert for %s: %s", alert.Symbol, alert.Description)
+		log.Error("risk alert", "symbol", alert.Symbol, "description", alert.Description)
 		return nil
 	}
 }
@@ -324,15 +323,21 @@ func main() {
 	config := &configs.Config{}
 	configFile, err := os.ReadFile(flagconf)
 	if err != nil {
-		log.Error("Error reading config file: %v", err)
+		log.Error("Error reading config file", "err", err)
 	}
 
 	if err := json.Unmarshal(configFile, config); err != nil {
-		log.Error("Error parsing config file: %v", err)
+		log.Error("Error parsing config file", "err", err)
 		return
 	}
 
-	log.Debug("Loaded config: %+v\n", config)
+	log.Debug("Loaded config", "config", config)
+
+	if config.Proxy != "" {
+		_ = os.Setenv("HTTP_PROXY", config.Proxy)
+		_ = os.Setenv("HTTPS_PROXY", config.Proxy)
+		log.Debug("set proxy ok", "proxy", config.Proxy)
+	}
 
 	// 初始化各个组件
 	collector := collectorData.NewMultiSourceCollector([]collectorData.DataSource{
@@ -343,7 +348,7 @@ func main() {
 
 	storager, err := storage.NewPostgresStorage(config.Database.ConnStr)
 	if err != nil {
-		log.Error("Error creating storage: %v", err)
+		log.Error("Error creating storage", "err", err)
 		return
 	}
 
@@ -374,6 +379,6 @@ func main() {
 	// 运行系统
 	ctx := context.Background()
 	if err := system.Run(ctx); err != nil {
-		log.Error("System error: %v", err)
+		log.Error("System error", "err", err)
 	}
 }

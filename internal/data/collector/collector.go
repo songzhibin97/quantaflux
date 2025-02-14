@@ -97,9 +97,9 @@ func (c *MultiSourceCollector) CollectSocialMetrics(ctx context.Context, symbol 
 
 	wg.Wait()
 
-	if len(results) == 0 {
-		return nil, fmt.Errorf("failed to collect social metrics from all sources")
-	}
+	//if len(results) == 0 {
+	//	return nil, fmt.Errorf("failed to collect social metrics from all sources")
+	//}
 
 	return results, nil
 }

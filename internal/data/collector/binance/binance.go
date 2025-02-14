@@ -117,5 +117,5 @@ func (b *BinanceDataSource) CollectMarketData(ctx context.Context, symbol string
 func (b *BinanceDataSource) CollectSocialMetrics(ctx context.Context, symbol string) (map[string]float64, error) {
 	// Binance doesn't provide social metrics directly
 	// This is a placeholder that could be implemented by combining with other APIs
-	return nil, fmt.Errorf("social metrics not available from Binance")
+	return map[string]float64{}, nil
 }

@@ -26,7 +26,14 @@ func NewPostgresStorage(connStr string) (*PostgresStorage, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", err)
 	}
 
-	return &PostgresStorage{db: db}, nil
+	s := &PostgresStorage{db: db}
+
+	err = s.initTables()
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize tables: %w", err)
+	}
+
+	return s, nil
 }
 
 // SaveTokenInfo implements DataStorage interface
@@ -188,4 +195,54 @@ func (s *PostgresStorage) GetProjectMetrics(ctx context.Context, symbol string) 
 
 	metrics.TokenInfo = tokenInfo
 	return &metrics, nil
+}
+
+func (s *PostgresStorage) initTables() error {
+	queries := []string{
+		`CREATE TABLE IF NOT EXISTS token_info (
+			id SERIAL PRIMARY KEY,
+			symbol VARCHAR(50) UNIQUE NOT NULL,
+			name VARCHAR(100),
+			contract_address VARCHAR(100),
+			network VARCHAR(50),
+			launch_type VARCHAR(50),
+			initial_price NUMERIC(18, 8),
+			total_supply NUMERIC(18, 8),
+			circulating_supply NUMERIC(18, 8),
+			team_allocation NUMERIC(18, 8),
+			vesting_schedule TEXT,
+			created_at TIMESTAMP DEFAULT NOW(),
+			updated_at TIMESTAMP DEFAULT NOW()
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS market_data (
+			id SERIAL PRIMARY KEY,
+			symbol VARCHAR(50) NOT NULL,
+			price NUMERIC(18, 8),
+			volume_24h NUMERIC(18, 8),
+			market_cap NUMERIC(18, 8),
+			price_change_1h NUMERIC(10, 4),
+			price_change_24h NUMERIC(10, 4),
+			timestamp TIMESTAMP NOT NULL
+		)`,
+
+		`CREATE TABLE IF NOT EXISTS project_metrics (
+			id SERIAL PRIMARY KEY,
+			token_info_id INT NOT NULL,
+			social_score NUMERIC(10, 4),
+			development_score NUMERIC(10, 4),
+			community_growth NUMERIC(10, 4),
+			market_sentiment NUMERIC(10, 4),
+			risk_score NUMERIC(10, 4),
+			updated_at TIMESTAMP DEFAULT NOW()
+		)`,
+	}
+
+	for _, query := range queries {
+		_, err := s.db.Exec(query)
+		if err != nil {
+			return fmt.Errorf("failed to execute query: %w", err)
+		}
+	}
+	return nil
 }
